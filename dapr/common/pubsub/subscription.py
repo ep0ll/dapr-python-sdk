@@ -3,7 +3,21 @@ from typing import Mapping, Optional, Union
 
 from google.protobuf.json_format import MessageToDict
 
-from dapr.proto.runtime.v1.appcallback_pb2 import TopicEventRequest
+from dapr.proto.runtime.v1.appcallback_pb2 import BulkSubscribeConfig, TopicEventRequest
+
+
+def normalize_bulk_subscribe_config(config):
+    """Convert the public mapping form into the generated protobuf message."""
+    if config is None:
+        return None
+    if isinstance(config, BulkSubscribeConfig):
+        return config
+    if isinstance(config, Mapping):
+        try:
+            return BulkSubscribeConfig(**config)
+        except (TypeError, ValueError) as e:
+            raise ValueError('Invalid bulk_subscribe configuration') from e
+    raise TypeError('bulk_subscribe must be a mapping or BulkSubscribeConfig')
 
 
 class SubscriptionMessage:

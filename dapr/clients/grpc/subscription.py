@@ -14,6 +14,7 @@ from dapr.common.pubsub.subscription import (
     StreamInactiveError,
     StreamReconnectError,
     SubscriptionMessage,
+    normalize_bulk_subscribe_config,
 )
 from dapr.proto import api_v1, appcallback_v1
 
@@ -42,7 +43,7 @@ class Subscription:
         self._topic = topic
         self._metadata = metadata or {}
         self._dead_letter_topic = dead_letter_topic or ''
-        self._bulk_subscribe = bulk_subscribe or None
+        self._bulk_subscribe = normalize_bulk_subscribe_config(bulk_subscribe)
         self._pending_messages = deque()
         self._stream: Optional[Call] = None
         self._response_thread: Optional[threading.Thread] = None
