@@ -229,7 +229,9 @@ class GetActorStateResponse(_message.Message):
 
     DATA_FIELD_NUMBER: _builtins.int
     METADATA_FIELD_NUMBER: _builtins.int
+    ETAG_FIELD_NUMBER: _builtins.int
     data: _builtins.bytes
+    etag: _builtins.str
     @_builtins.property
     def metadata(self) -> _containers.ScalarMap[_builtins.str, _builtins.str]:
         """The metadata which will be sent to app."""
@@ -297,8 +299,10 @@ class TransactionalActorStateOperation(_message.Message):
     KEY_FIELD_NUMBER: _builtins.int
     VALUE_FIELD_NUMBER: _builtins.int
     METADATA_FIELD_NUMBER: _builtins.int
+    ETAG_FIELD_NUMBER: _builtins.int
     operationType: _builtins.str
     key: _builtins.str
+    etag: _builtins.str
     @_builtins.property
     def value(self) -> _any_pb2.Any: ...
     @_builtins.property
@@ -316,10 +320,11 @@ class TransactionalActorStateOperation(_message.Message):
         key: _builtins.str = ...,
         value: _any_pb2.Any | None = ...,
         metadata: _abc.Mapping[_builtins.str, _builtins.str] | None = ...,
+        etag: _builtins.str = ...,
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "metadata", b"metadata", "operationType", b"operationType", "value", b"value"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "metadata", b"metadata", "operationType", b"operationType", "value", b"value", "etag", b"etag"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___TransactionalActorStateOperation: _TypeAlias = TransactionalActorStateOperation  # noqa: Y015
