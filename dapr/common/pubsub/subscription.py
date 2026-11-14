@@ -10,9 +10,9 @@ class SubscriptionMessage:
     """Message delivered to Dapr pub/sub subscribers.
 
     Delivered by both the streaming subscription API (``DaprClient.subscribe``) and the
-    App callback API (``@app.subscribe``). ``metadata`` carries delivery metadata (gRPC
-    invocation metadata and, for bulk deliveries, per-entry publish metadata); it is only
-    populated for App callback deliveries.
+    App callback API (``@app.subscribe``). ``metadata`` carries per-entry publish metadata
+    for bulk deliveries when available. The streaming acknowledgement identity is kept
+    separately from ``id()``, which continues to represent the CloudEvent ID or raw entry ID.
     """
 
     def __init__(
