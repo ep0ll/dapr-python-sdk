@@ -20,7 +20,7 @@ import hashlib
 import tempfile
 from collections.abc import AsyncIterable, AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, cast
 
 from dapr.ext.workflow.payloads import (
     PayloadReference,
@@ -38,7 +38,7 @@ class AsyncWorkflowPayloadResolver(_WorkflowPayloadResolverBase):
 
     async def store(self, value: Any, instance_id: str) -> PayloadReference[Any]:
         """Serialize and store a value, returning its JSON-compatible reference."""
-        return (await self.store_bytes(self._serialize_value(value), instance_id)).as_typed()
+        return cast(PayloadReference[Any], await self.store_bytes(self._serialize_value(value), instance_id))
 
     async def store_bytes(self, content: bytes, instance_id: str) -> PayloadReference[bytes]:
         """Store raw bytes and return a reference."""
@@ -50,7 +50,7 @@ class AsyncWorkflowPayloadResolver(_WorkflowPayloadResolverBase):
         await self._client.set_binary_file_alpha1(
             reference.store_name, reference.key, payload, overwrite=True
         )
-        return reference.as_typed()
+        return cast(PayloadReference[bytes], reference)
 
     async def store_stream(
         self, chunks: AsyncIterable[bytes], instance_id: str
@@ -71,7 +71,7 @@ class AsyncWorkflowPayloadResolver(_WorkflowPayloadResolverBase):
             await self._client.set_binary_file_alpha1(
                 reference.store_name, reference.key, staged, overwrite=True
             )
-        return reference
+        return cast(PayloadReference[bytes], reference)
 
     async def resolve_bytes(self, reference: object) -> bytes:
         """Download and integrity-check bytes, enforcing the configured buffer limit."""
@@ -115,4 +115,5 @@ class AsyncWorkflowPayloadResolver(_WorkflowPayloadResolverBase):
     async def delete(self, reference: object) -> None:
         """Delete one explicitly selected payload. Deletion is never automatic."""
         parsed = self._coerce_reference(reference)
+        self._ensure_supported_stages(parsed)
         await self._client.delete_binary_file_alpha1(parsed.store_name, parsed.key)

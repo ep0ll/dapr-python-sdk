@@ -18,7 +18,13 @@ from dapr.ext.workflow._durabletask.task import FailureDetails, TaskFailedError
 from dapr.ext.workflow.dapr_workflow_client import DaprWorkflowClient
 from dapr.ext.workflow.dapr_workflow_context import DaprWorkflowContext, when_all, when_any
 from dapr.ext.workflow.mcp import DaprMCPClient, MCPToolDef
-from dapr.ext.workflow.payloads import (\n    PayloadIntegrityError,\n    PayloadReference,\n    PayloadRehydrationLimitError,\n    WorkflowPayloadResolver,\n)\nfrom dapr.ext.workflow.propagation import (
+from dapr.ext.workflow.payloads import (
+    PayloadIntegrityError,
+    PayloadReference,
+    PayloadRehydrationLimitError,
+    WorkflowPayloadResolver,
+)
+from dapr.ext.workflow.propagation import (
     ActivityResult,
     ChildWorkflowResult,
     PropagatedHistory,

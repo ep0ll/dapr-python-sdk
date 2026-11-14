@@ -274,7 +274,9 @@ class _WorkflowPayloadResolverBase:
             or any(char in prefix for char in '\\:*?[]#%')
             or any(ord(char) < 32 for char in prefix)
         ):
-            raise ValueError('key_prefix must be a relative Binary Store path without reserved segments')
+            raise ValueError(
+                'key_prefix must be a relative Binary Store path without reserved segments'
+            )
 
     @staticmethod
     def _serialize_value(value: Any) -> bytes:
@@ -333,7 +335,7 @@ class WorkflowPayloadResolver(_WorkflowPayloadResolverBase):
 
     def store(self, value: T, instance_id: str) -> PayloadReference[T]:
         """Serialize and store a value, returning its JSON-compatible reference."""
-        return self.store_bytes(self._serialize_value(value), instance_id).as_typed()
+        return cast(PayloadReference[T], self.store_bytes(self._serialize_value(value), instance_id))
 
     def store_bytes(self, content: bytes, instance_id: str) -> PayloadReference[bytes]:
         """Store raw bytes and return a reference."""
@@ -345,7 +347,7 @@ class WorkflowPayloadResolver(_WorkflowPayloadResolverBase):
         self._client.set_binary_file_alpha1(
             reference.store_name, reference.key, payload, overwrite=True
         )
-        return reference.as_typed()
+        return cast(PayloadReference[bytes], reference)
 
     def store_stream(self, content: BinaryIO, instance_id: str) -> PayloadReference[bytes]:
         """Store a binary stream without buffering the complete payload in memory."""
@@ -368,7 +370,7 @@ class WorkflowPayloadResolver(_WorkflowPayloadResolverBase):
             self._client.set_binary_file_alpha1(
                 reference.store_name, reference.key, staged, overwrite=True
             )
-        return reference
+        return cast(PayloadReference[bytes], reference)
 
     def resolve_bytes(self, reference: object) -> bytes:
         """Download and integrity-check bytes, enforcing the configured buffer limit."""
@@ -411,4 +413,5 @@ class WorkflowPayloadResolver(_WorkflowPayloadResolverBase):
     def delete(self, reference: object) -> None:
         """Delete one explicitly selected payload. Deletion is never automatic."""
         parsed = self._coerce_reference(reference)
+        self._ensure_supported_stages(parsed)
         self._client.delete_binary_file_alpha1(parsed.store_name, parsed.key)

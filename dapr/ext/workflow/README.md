@@ -61,12 +61,14 @@ with payloads.open(reference) as content:
 
 For async applications and activities, use `AsyncWorkflowPayloadResolver` from
 `dapr.ext.workflow.aio` with `dapr.aio.clients.DaprClient`. It exposes the same typed and raw-byte
-operations; `store_stream()` accepts an `AsyncIterable[bytes]`, and `open()` returns an async stream.
+operations; `store_stream()` accepts an `AsyncIterable[bytes]`, and `open()` returns an async
+stream.
 
 Buffered `resolve()` and `resolve_bytes()` calls are limited to 16 MiB by default. Configure
 `max_rehydration_size` to change that limit, or use `open()` for streaming reads. Streamed reads do
 not buffer the entire object and verify the recorded digest when the stream is consumed to EOF;
-closing a stream early cancels the download before the final integrity check. The resolver never deletes payloads automatically when a workflow is purged. Retain or delete
+closing a stream early cancels the download before the final integrity check. The resolver never
+deletes payloads automatically when a workflow is purged. Retain or delete
 referenced objects according to an application-owned retention policy, and only call `delete()`
 when no live or replayable workflow still needs the object.
 
