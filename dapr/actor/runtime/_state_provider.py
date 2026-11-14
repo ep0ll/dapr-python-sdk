@@ -45,19 +45,29 @@ class StateProvider:
     async def try_load_state(
         self, actor_type: str, actor_id: str, state_name: str, state_type: Type[Any] = object
     ) -> Tuple[bool, Any]:
-        raw_state_value = await self._state_client.get_state(actor_type, actor_id, state_name)
+        has_value, value, _ = await self.try_load_state_with_etag(
+            actor_type, actor_id, state_name, state_type
+        )
+        return has_value, value
+
+    async def try_load_state_with_etag(
+        self, actor_type: str, actor_id: str, state_name: str, state_type: Type[Any] = object
+    ) -> Tuple[bool, Any, Optional[str]]:
+        raw_state_value, etag = await self._state_client.get_state_with_etag(
+            actor_type, actor_id, state_name
+        )
         if (not raw_state_value) or len(raw_state_value) == 0:
-            return (False, None)
+            return False, None, etag
         result = self._state_serializer.deserialize(raw_state_value, state_type)
-        return (True, result)
+        return True, result, etag
 
     def round_trip_state_value(self, value: Any) -> Any:
         """Returns value as try_load_state would decode it after a save, without a store read."""
         return self._state_serializer.deserialize(self._state_serializer.serialize(value), object)
 
     async def contains_state(self, actor_type: str, actor_id: str, state_name: str) -> bool:
-        raw_state_value = await self._state_client.get_state(actor_type, actor_id, state_name)
-        return (raw_state_value is not None) and len(raw_state_value) > 0
+        has_value, _, _ = await self.try_load_state_with_etag(actor_type, actor_id, state_name)
+        return has_value
 
     async def save_state(
         self, actor_type: str, actor_id: str, state_changes: List[ActorStateChange]
@@ -105,6 +115,10 @@ class StateProvider:
                 json_output.write(b',"metadata":{"ttlInSeconds":"')
                 json_output.write(serialized)
                 json_output.write(b'"}')
+            if state.etag:
+                serialized_etag = self._state_serializer.serialize(state.etag)
+                json_output.write(b',"etag":')
+                json_output.write(serialized_etag)
             json_output.write(b'}}')
             first_state = False
         json_output.write(b']')
