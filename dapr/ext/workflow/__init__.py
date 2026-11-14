@@ -76,4 +76,8 @@ __all__ = [
     'ChildWorkflowResult',
     'DaprMCPClient',
     'MCPToolDef',
+    'PayloadReference',
+    'WorkflowPayloadResolver',
+    'PayloadIntegrityError',
+    'PayloadRehydrationLimitError',
 ]

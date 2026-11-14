@@ -38,7 +38,8 @@ class AsyncWorkflowPayloadResolver(_WorkflowPayloadResolverBase):
 
     async def store(self, value: Any, instance_id: str) -> PayloadReference[Any]:
         """Serialize and store a value, returning its JSON-compatible reference."""
-        return cast(PayloadReference[Any], await self.store_bytes(self._serialize_value(value), instance_id))
+        reference = await self.store_bytes(self._serialize_value(value), instance_id)
+        return cast(PayloadReference[Any], reference)
 
     async def store_bytes(self, content: bytes, instance_id: str) -> PayloadReference[bytes]:
         """Store raw bytes and return a reference."""

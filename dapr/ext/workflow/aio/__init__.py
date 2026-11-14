@@ -17,10 +17,12 @@ limitations under the License.
 from dapr.ext.workflow.mcp import MCPToolDef
 
 from .dapr_workflow_client import DaprWorkflowClient
-from .mcp import DaprMCPClient\nfrom .payloads import AsyncWorkflowPayloadResolver
+from .mcp import DaprMCPClient
+from .payloads import AsyncWorkflowPayloadResolver
 
 __all__ = [
     'DaprWorkflowClient',
     'DaprMCPClient',
     'MCPToolDef',
+    'AsyncWorkflowPayloadResolver',
 ]

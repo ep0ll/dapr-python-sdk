@@ -335,7 +335,8 @@ class WorkflowPayloadResolver(_WorkflowPayloadResolverBase):
 
     def store(self, value: T, instance_id: str) -> PayloadReference[T]:
         """Serialize and store a value, returning its JSON-compatible reference."""
-        return cast(PayloadReference[T], self.store_bytes(self._serialize_value(value), instance_id))
+        reference = self.store_bytes(self._serialize_value(value), instance_id)
+        return cast(PayloadReference[T], reference)
 
     def store_bytes(self, content: bytes, instance_id: str) -> PayloadReference[bytes]:
         """Store raw bytes and return a reference."""
