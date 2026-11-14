@@ -23,7 +23,7 @@ from grpc import StatusCode  # type: ignore[attr-defined]
 from grpc.aio import AioRpcError
 
 from dapr.clients.base import DAPR_REENTRANCY_ID_HEADER, DaprActorClientBase
-from dapr.clients.exceptions import DaprInternalError
+from dapr.clients.exceptions import ActorStateETagMismatchError, DaprInternalError
 from dapr.clients.grpc._channel import create_aio_channel
 from dapr.common.reentrancy_context import reentrancy_ctx
 from dapr.proto import api_service_v1, api_v1, common_v1
@@ -130,7 +130,15 @@ class DaprActorGrpcClient(DaprActorClientBase):
             actor_id=actor_id,
             operations=operations,
         )
-        await self._stub.ExecuteActorStateTransaction(request, timeout=self._timeout)
+        try:
+            await self._stub.ExecuteActorStateTransaction(request, timeout=self._timeout)
+        except AioRpcError as error:
+            if (
+                error.code() == StatusCode.ABORTED
+                and 'ERR_ACTOR_STATE_ETAG_MISMATCH' in (error.details() or '')
+            ):
+                raise ActorStateETagMismatchError(error.details()) from error
+            raise
 
     async def get_state(self, actor_type: str, actor_id: str, name: str) -> bytes:
         data, _ = await self.get_state_with_etag(actor_type, actor_id, name)
@@ -234,6 +242,9 @@ def _to_transactional_operation(
     metadata: Optional[Dict[str, str]] = request.get('metadata')
     if metadata:
         proto_operation.metadata.update(metadata)
+    etag = request.get('etag')
+    if etag:
+        proto_operation.etag = etag
     return proto_operation
 
 
