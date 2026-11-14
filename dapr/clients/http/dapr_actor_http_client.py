@@ -84,19 +84,16 @@ class DaprActorHttpClient(DaprActorClientBase):
         await self._client.send_bytes(method='PUT', url=url, data=data)
 
     async def get_state(self, actor_type: str, actor_id: str, name: str) -> bytes:
-        """Get state value for name key.
-
-        Args:
-            actor_type (str): Actor type.
-            actor_id (str): Id of Actor type.
-            name (str): The name of state.
-
-        Returns:
-            bytes: the value of the state.
-        """
-        url = f'{self._get_base_url(actor_type, actor_id)}/state/{name}'
-        body, _ = await self._client.send_bytes(method='GET', url=url, data=None)
+        body, _ = await self.get_state_with_etag(actor_type, actor_id, name)
         return body
+
+    async def get_state_with_etag(
+        self, actor_type: str, actor_id: str, name: str
+    ) -> tuple[bytes, Optional[str]]:
+        """Get actor state and its ETag response header."""
+        url = f'{self._get_base_url(actor_type, actor_id)}/state/{name}'
+        body, response = await self._client.send_bytes(method='GET', url=url, data=None)
+        return body, response.headers.get('ETag')
 
     async def register_reminder(
         self, actor_type: str, actor_id: str, name: str, data: bytes
