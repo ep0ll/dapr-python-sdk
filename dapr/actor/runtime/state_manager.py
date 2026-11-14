@@ -192,11 +192,13 @@ class ActorStateManager(Generic[T]):
             state_metadata.change_kind = StateChangeKind.remove
             return True
 
-        existed = await self._actor.runtime_ctx.state_provider.contains_state(
+        existed, _, etag = await self._actor.runtime_ctx.state_provider.try_load_state_with_etag(
             self._type_name, self._actor.id.id, state_name
         )
         if existed:
-            state_change_tracker[state_name] = StateMetadata(None, StateChangeKind.remove)
+            metadata = StateMetadata(None, StateChangeKind.remove)
+            metadata.etag = etag
+            state_change_tracker[state_name] = metadata
             return True
         return False
 
