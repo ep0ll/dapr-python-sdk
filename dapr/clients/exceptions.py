@@ -98,6 +98,14 @@ class StatusDetails:
         return {attr: getattr(self, attr) for attr in self.__dict__}
 
 
+class ActorStateETagMismatchError(DaprInternalError):
+    """Raised when an actor state save uses an ETag that is no longer current."""
+
+    def __init__(self, message: Optional[str] = None):
+        super().__init__(message or "Actor state ETag does not match the stored value.",
+                         "ERR_ACTOR_STATE_ETAG_MISMATCH")
+
+
 class DaprHttpError(DaprInternalError):
     """DaprHttpError encapsulates all Dapr HTTP exceptions
 
