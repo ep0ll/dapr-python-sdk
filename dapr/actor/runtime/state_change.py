@@ -41,11 +41,13 @@ class ActorStateChange(Generic[T]):
         value: T,
         change_kind: StateChangeKind,
         ttl_in_seconds: Optional[int] = None,
+        etag: Optional[str] = None,
     ):
         self._state_name = state_name
         self._value = value
         self._change_kind = change_kind
         self._ttl_in_seconds = ttl_in_seconds
+        self._etag = etag
 
     @property
     def state_name(self) -> str:
@@ -62,3 +64,8 @@ class ActorStateChange(Generic[T]):
     @property
     def ttl_in_seconds(self) -> Optional[int]:
         return self._ttl_in_seconds
+
+    @property
+    def etag(self) -> Optional[str]:
+        """The ETag associated with the value originally read from the store."""
+        return self._etag
