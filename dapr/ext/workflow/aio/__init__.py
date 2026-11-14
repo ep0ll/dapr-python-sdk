@@ -17,7 +17,7 @@ limitations under the License.
 from dapr.ext.workflow.mcp import MCPToolDef
 
 from .dapr_workflow_client import DaprWorkflowClient
-from .mcp import DaprMCPClient
+from .mcp import DaprMCPClient\nfrom .payloads import AsyncWorkflowPayloadResolver
 
 __all__ = [
     'DaprWorkflowClient',
