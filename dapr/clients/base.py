@@ -36,6 +36,16 @@ class DaprActorClientBase(ABC):
     @abstractmethod
     async def get_state(self, actor_type: str, actor_id: str, name: str) -> bytes: ...
 
+    async def get_state_with_etag(
+        self, actor_type: str, actor_id: str, name: str
+    ) -> tuple[bytes, Optional[str]]:
+        """Returns actor state bytes and the store ETag when available.
+
+        The default keeps third-party actor clients source-compatible; built-in
+        transports override this to expose the response ETag.
+        """
+        return await self.get_state(actor_type, actor_id, name), None
+
     @abstractmethod
     async def register_reminder(
         self, actor_type: str, actor_id: str, name: str, data: bytes
