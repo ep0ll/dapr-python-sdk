@@ -603,6 +603,7 @@ class DaprGrpcClient:
         topic: str,
         metadata: Optional[MetadataTuple] = None,
         dead_letter_topic: Optional[str] = None,
+        bulk_subscribe: Optional[dict] = None,
     ) -> Subscription:
         """
         Subscribe to a topic with a bidirectional stream
@@ -612,11 +613,13 @@ class DaprGrpcClient:
             topic (str): The name of the topic.
             metadata (Optional[MetadataTuple]): Additional metadata for the subscription.
             dead_letter_topic (Optional[str]): Name of the dead-letter topic.
+            bulk_subscribe (Optional[dict]): Bulk subscription config with enabled, max_messages_count and
+                max_await_duration_ms keys.
 
         Returns:
             Subscription: The Subscription object managing the stream.
         """
-        subscription = Subscription(self._stub, pubsub_name, topic, metadata, dead_letter_topic)
+        subscription = Subscription(self._stub, pubsub_name, topic, metadata, dead_letter_topic, bulk_subscribe)
         subscription.start()
         return subscription
 
@@ -627,6 +630,7 @@ class DaprGrpcClient:
         handler_fn: Callable[..., TopicEventResponse],
         metadata: Optional[MetadataTuple] = None,
         dead_letter_topic: Optional[str] = None,
+        bulk_subscribe: Optional[dict] = None,
     ) -> Callable:
         """
         Subscribe to a topic with a bidirectional stream and a message handler function
@@ -642,7 +646,7 @@ class DaprGrpcClient:
             Callable: Closes the subscription and waits up to SUBSCRIPTION_CLOSE_TIMEOUT_SECONDS
                 for the handler thread to stop.
         """
-        subscription = self.subscribe(pubsub_name, topic, metadata, dead_letter_topic)
+        subscription = self.subscribe(pubsub_name, topic, metadata, dead_letter_topic, bulk_subscribe)
 
         def stream_messages(sub):
             while True:

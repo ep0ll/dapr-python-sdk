@@ -15,8 +15,16 @@ class SubscriptionMessage:
     populated for App callback deliveries.
     """
 
-    def __init__(self, msg: TopicEventRequest, metadata: Optional[Mapping[str, str]] = None):
+    def __init__(
+        self,
+        msg: TopicEventRequest,
+        metadata: Optional[Mapping[str, str]] = None,
+        acknowledgement_id: Optional[str] = None,
+        entry_id: Optional[str] = None,
+    ):
         self._id: str = msg.id
+        self._acknowledgement_id: str = acknowledgement_id or msg.id
+        self._entry_id: Optional[str] = entry_id
         self._source: str = msg.source
         self._type: str = msg.type
         self._spec_version: str = msg.spec_version
@@ -41,6 +49,14 @@ class SubscriptionMessage:
 
     def id(self):
         return self._id
+
+    def acknowledgement_id(self):
+        """Identifier to echo in the streaming ACK; distinct from CloudEvent ID for bulk delivery."""
+        return self._acknowledgement_id
+
+    def entry_id(self):
+        """Original component bulk entry ID, or None for a single-event delivery."""
+        return self._entry_id
 
     def source(self):
         return self._source

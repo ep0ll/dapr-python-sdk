@@ -2,6 +2,7 @@ import logging
 import queue
 import random
 import threading
+from collections import deque
 from typing import Optional
 
 from grpc import Call, RpcError, StatusCode  # type: ignore
@@ -35,12 +36,14 @@ def _reconnect_backoff_seconds(reconnect_attempts: int) -> float:
 
 
 class Subscription:
-    def __init__(self, stub, pubsub_name, topic, metadata=None, dead_letter_topic=None):
+    def __init__(self, stub, pubsub_name, topic, metadata=None, dead_letter_topic=None, bulk_subscribe=None):
         self._stub = stub
         self._pubsub_name = pubsub_name
         self._topic = topic
         self._metadata = metadata or {}
         self._dead_letter_topic = dead_letter_topic or ''
+        self._bulk_subscribe = bulk_subscribe or None
+        self._pending_messages = deque()
         self._stream: Optional[Call] = None
         self._response_thread: Optional[threading.Thread] = None
         self._send_queue: queue.Queue = queue.Queue()
@@ -64,6 +67,7 @@ class Subscription:
                         topic=self._topic,
                         metadata=self._metadata or {},
                         dead_letter_topic=self._dead_letter_topic or '',
+                        bulk_subscribe=self._bulk_subscribe,
                     )
                 )
                 yield initial_request
@@ -112,6 +116,7 @@ class Subscription:
             raise Exception(f'Error while initializing stream: {e}') from e
 
     def reconnect_stream(self):
+        self._pending_messages.clear()
         self._close_stream()
         DaprHealth.wait_for_sidecar()
         logger.info('Subscription stream reconnecting...')
@@ -165,6 +170,9 @@ class Subscription:
             raise StreamInactiveError('Stream is not active')
 
         send_queue = self._send_queue
+        if self._pending_messages:
+            return self._pending_messages.popleft()
+
         try:
             message = next(self._stream)  # type: ignore[call-overload]
         except StopIteration as e:
@@ -183,15 +191,67 @@ class Subscription:
         except Exception as e:
             raise Exception(f'Error while fetching message: {e}')
 
-        subscription_message = SubscriptionMessage(message.event_message)
-        subscription_message._origin_send_queue = send_queue
-        return subscription_message
+        if message.HasField('event_message') and message.event_messages:
+            raise ValueError('Streaming response contains both a single event and bulk events')
+
+        if message.HasField('event_message'):
+            subscription_message = SubscriptionMessage(message.event_message)
+            subscription_message._origin_send_queue = send_queue
+            return subscription_message
+
+        if message.event_messages:
+            self._pending_messages.extend(
+                self._create_bulk_subscription_message(item, send_queue)
+                for item in message.event_messages
+            )
+            return self._pending_messages.popleft()
+
+        raise ValueError('Streaming subscription response contains no event message')
+
+    def _create_bulk_subscription_message(self, item, send_queue):
+        if not item.delivery_id or not item.HasField('entry'):
+            raise ValueError('Bulk streaming response contains an invalid entry or delivery ID')
+
+        entry = item.entry
+        event_case = entry.WhichOneof('event')
+        if event_case == 'cloud_event':
+            cloud_event = entry.cloud_event
+            event = appcallback_v1.TopicEventRequest(
+                id=cloud_event.id,
+                source=cloud_event.source,
+                type=cloud_event.type,
+                spec_version=cloud_event.spec_version,
+                data_content_type=cloud_event.data_content_type,
+                data=cloud_event.data,
+                topic=self._topic,
+                pubsub_name=self._pubsub_name,
+                extensions=cloud_event.extensions,
+            )
+        elif event_case == 'bytes':
+            event = appcallback_v1.TopicEventRequest(
+                id=entry.entry_id,
+                data_content_type=entry.content_type,
+                data=entry.bytes,
+                topic=self._topic,
+                pubsub_name=self._pubsub_name,
+            )
+        else:
+            raise ValueError(f'Bulk streaming entry {entry.entry_id!r} has no event payload')
+
+        message = SubscriptionMessage(
+            event,
+            metadata=entry.metadata,
+            acknowledgement_id=item.delivery_id,
+            entry_id=entry.entry_id,
+        )
+        message._origin_send_queue = send_queue
+        return message
 
     def respond(self, message, status):
         try:
             status = appcallback_v1.TopicEventResponse(status=status.value)
             response = api_v1.SubscribeTopicEventsRequestProcessedAlpha1(
-                id=message.id(), status=status
+                id=message.acknowledgement_id(), status=status
             )
             msg = api_v1.SubscribeTopicEventsRequestAlpha1(event_processed=response)
             if not self._is_stream_active():
@@ -199,7 +259,7 @@ class Subscription:
             send_queue = self._send_queue
             origin_send_queue = message._origin_send_queue
             if origin_send_queue is not None and origin_send_queue is not send_queue:
-                logger.debug('Dropping response to message %s from a replaced stream', message.id())
+                logger.debug('Dropping response to delivery %s from a replaced stream', message.acknowledgement_id())
                 return
             send_queue.put(msg)
         except Exception as e:

@@ -295,10 +295,13 @@ class SubscribeTopicEventsRequestInitialAlpha1(_message.Message):
     TOPIC_FIELD_NUMBER: _builtins.int
     METADATA_FIELD_NUMBER: _builtins.int
     DEAD_LETTER_TOPIC_FIELD_NUMBER: _builtins.int
+    BULK_SUBSCRIBE_FIELD_NUMBER: _builtins.int
     pubsub_name: _builtins.str
     """The name of the pubsub component"""
     topic: _builtins.str
     """The pubsub topic"""
+    bulk_subscribe: _appcallback_pb2.BulkSubscribeConfig
+    """Optional bulk subscription settings."""
     dead_letter_topic: _builtins.str
     """dead_letter_topic is the topic to which messages that fail to be processed
     are sent.
@@ -318,6 +321,7 @@ class SubscribeTopicEventsRequestInitialAlpha1(_message.Message):
         topic: _builtins.str = ...,
         metadata: _abc.Mapping[_builtins.str, _builtins.str] | None = ...,
         dead_letter_topic: _builtins.str | None = ...,
+        bulk_subscribe: _appcallback_pb2.BulkSubscribeConfig | None = ..., 
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["_dead_letter_topic", b"_dead_letter_topic", "dead_letter_topic", b"dead_letter_topic"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
@@ -368,15 +372,19 @@ class SubscribeTopicEventsResponseAlpha1(_message.Message):
 
     INITIAL_RESPONSE_FIELD_NUMBER: _builtins.int
     EVENT_MESSAGE_FIELD_NUMBER: _builtins.int
+    EVENT_MESSAGES_FIELD_NUMBER: _builtins.int
     @_builtins.property
     def initial_response(self) -> Global___SubscribeTopicEventsResponseInitialAlpha1: ...
     @_builtins.property
     def event_message(self) -> _appcallback_pb2.TopicEventRequest: ...
+    @_builtins.property
+    def event_messages(self) -> _containers.RepeatedCompositeFieldContainer[SubscribeTopicEventsBulkEntryAlpha1]: ...
     def __init__(
         self,
         *,
         initial_response: Global___SubscribeTopicEventsResponseInitialAlpha1 | None = ...,
         event_message: _appcallback_pb2.TopicEventRequest | None = ...,
+        event_messages: _abc.Iterable[SubscribeTopicEventsBulkEntryAlpha1] = ..., 
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["event_message", b"event_message", "initial_response", b"initial_response", "subscribe_topic_events_response_type", b"subscribe_topic_events_response_type"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
@@ -399,5 +407,27 @@ class SubscribeTopicEventsResponseInitialAlpha1(_message.Message):
     def __init__(
         self,
     ) -> None: ...
+
+
+@_typing.final
+class SubscribeTopicEventsBulkEntryAlpha1(_message.Message):
+    """Bulk subscription entry wrapper with an independent streaming delivery ID."""
+
+    DESCRIPTOR: _descriptor.Descriptor
+    DELIVERY_ID_FIELD_NUMBER: _builtins.int
+    ENTRY_FIELD_NUMBER: _builtins.int
+    delivery_id: _builtins.str
+    entry: _appcallback_pb2.TopicEventBulkRequestEntry
+
+    def __init__(
+        self,
+        *,
+        delivery_id: _builtins.str = ...,
+        entry: _appcallback_pb2.TopicEventBulkRequestEntry | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: _typing.Literal["entry", b"entry"]) -> _builtins.bool: ...
+    def ClearField(self, field_name: _typing.Literal["delivery_id", b"delivery_id", "entry", b"entry"]) -> None: ...
+
+Global___SubscribeTopicEventsBulkEntryAlpha1: _TypeAlias = SubscribeTopicEventsBulkEntryAlpha1  # noqa: Y015
 
 Global___SubscribeTopicEventsResponseInitialAlpha1: _TypeAlias = SubscribeTopicEventsResponseInitialAlpha1  # noqa: Y015
