@@ -30,19 +30,25 @@ code. For example, a workflow can return a reference from one activity and pass 
 from dapr.clients import DaprClient
 from dapr.ext.workflow import WorkflowPayloadResolver
 
-with DaprClient() as dapr:
-    payloads = WorkflowPayloadResolver(dapr, store_name='workflowdata')
+# Keep the Dapr client open for as long as the worker can execute these activities.
+dapr = DaprClient()
+payloads = WorkflowPayloadResolver(dapr, store_name='workflowdata')
 
-    def save_large_result(ctx, value):
-        return payloads.store(value, ctx.workflow_id)
 
-    def process_large_result(ctx, reference):
-        value = payloads.resolve(reference)
-        return process(value)
+def save_large_result(ctx, value):
+    return payloads.store(value, ctx.workflow_id)
 
-    def my_workflow(ctx, value):
-        reference = yield ctx.call_activity(save_large_result, input=value)
-        return (yield ctx.call_activity(process_large_result, input=reference))
+
+def process_large_result(ctx, reference):
+    value = payloads.resolve(reference)
+    return process(value)
+
+
+def my_workflow(ctx, value):
+    reference = yield ctx.call_activity(save_large_result, input=value)
+    return (yield ctx.call_activity(process_large_result, input=reference))
+
+# Close the Dapr client after the workflow worker has shut down.
 ```
 
 `PayloadReference` is a `dict` subclass, so it can be returned from an activity and passed directly
