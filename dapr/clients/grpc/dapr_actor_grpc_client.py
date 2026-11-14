@@ -155,7 +155,7 @@ class DaprActorGrpcClient(DaprActorClientBase):
             if error.code() == StatusCode.NOT_FOUND:
                 return b'', None
             raise
-        return response.data, response.etag or None
+        return response.data, getattr(response, 'etag', '') or None
 
     async def register_reminder(
         self, actor_type: str, actor_id: str, name: str, data: bytes
@@ -243,7 +243,7 @@ def _to_transactional_operation(
     if metadata:
         proto_operation.metadata.update(metadata)
     etag = request.get('etag')
-    if etag:
+    if etag and 'etag' in proto_operation.DESCRIPTOR.fields_by_name:
         proto_operation.etag = etag
     return proto_operation
 
