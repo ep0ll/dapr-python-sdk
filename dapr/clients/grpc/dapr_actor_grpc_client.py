@@ -133,10 +133,7 @@ class DaprActorGrpcClient(DaprActorClientBase):
         try:
             await self._stub.ExecuteActorStateTransaction(request, timeout=self._timeout)
         except AioRpcError as error:
-            if (
-                error.code() == StatusCode.ABORTED
-                and 'ERR_ACTOR_STATE_ETAG_MISMATCH' in (error.details() or '')
-            ):
+            if error.code() == StatusCode.ABORTED:
                 raise ActorStateETagMismatchError(error.details()) from error
             raise
 
