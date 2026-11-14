@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from dapr.clients.base import DAPR_REENTRANCY_ID_HEADER, DaprActorClientBase
 from dapr.clients.http.client import DaprHttpClient
 from dapr.clients.retry import RetryPolicy
+from dapr.clients.exceptions import ActorStateETagMismatchError, DaprInternalError
 from dapr.common.reentrancy_context import reentrancy_ctx
 
 
@@ -81,7 +82,12 @@ class DaprActorHttpClient(DaprActorClientBase):
             data (bytes): Json-serialized the transactional state operations.
         """
         url = f'{self._get_base_url(actor_type, actor_id)}/state'
-        await self._client.send_bytes(method='PUT', url=url, data=data)
+        try:
+            await self._client.send_bytes(method='PUT', url=url, data=data)
+        except DaprInternalError as error:
+            if error.error_code == 'ERR_ACTOR_STATE_ETAG_MISMATCH':
+                raise ActorStateETagMismatchError(error.message) from error
+            raise
 
     async def get_state(self, actor_type: str, actor_id: str, name: str) -> bytes:
         body, _ = await self.get_state_with_etag(actor_type, actor_id, name)
