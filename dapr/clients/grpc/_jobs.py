@@ -99,6 +99,8 @@ class Job:
             when the job is triggered. If not provided, an empty Any proto will be used.
         failure_policy (Optional[FailurePolicy]): The failure policy to apply when the job fails
             to trigger. If not provided, the default behavior is determined by the Dapr runtime.
+        override_route_path (Optional[str]): Optional relative HTTP callback path under /job/.
+            The job name remains the scheduler identity.
     """
 
     name: str
@@ -108,6 +110,7 @@ class Job:
     ttl: Optional[str] = None
     data: Optional[GrpcAny] = None
     failure_policy: Optional[FailurePolicy] = None
+    override_route_path: Optional[str] = None
 
     def _get_proto(self):
         """Convert this Job instance to a Dapr Job proto message.
@@ -143,6 +146,8 @@ class Job:
         # Set failure policy if provided
         if self.failure_policy:
             job_proto.failure_policy.CopyFrom(self.failure_policy._to_proto())
+        if self.override_route_path:
+            job_proto.override_route_path = self.override_route_path
 
         return job_proto
 
@@ -182,4 +187,7 @@ class Job:
             ttl=job_proto.ttl if job_proto.HasField('ttl') else None,
             data=job_proto.data if job_proto.HasField('data') and job_proto.data.value else None,
             failure_policy=failure_policy,
+            override_route_path=(
+                job_proto.override_route_path if job_proto.HasField('override_route_path') else None
+            ),
         )

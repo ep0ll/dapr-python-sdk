@@ -46,6 +46,7 @@ class Job(_message.Message):
     TTL_FIELD_NUMBER: _builtins.int
     DATA_FIELD_NUMBER: _builtins.int
     FAILURE_POLICY_FIELD_NUMBER: _builtins.int
+    OVERRIDE_ROUTE_PATH_FIELD_NUMBER: _builtins.int
     name: _builtins.str
     """The unique name for the job."""
     schedule: _builtins.str
@@ -95,6 +96,9 @@ class Job(_message.Message):
     def failure_policy(self) -> _common_pb2.JobFailurePolicy:
         """failure_policy is the optional policy for handling job failures."""
 
+    override_route_path: _builtins.str
+    """Optional relative HTTP callback path under /job/."""
+
     def __init__(
         self,
         *,
@@ -105,16 +109,19 @@ class Job(_message.Message):
         ttl: _builtins.str | None = ...,
         data: _any_pb2.Any | None = ...,
         failure_policy: _common_pb2.JobFailurePolicy | None = ...,
+        override_route_path: _builtins.str | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["_data", b"_data", "_due_time", b"_due_time", "_failure_policy", b"_failure_policy", "_repeats", b"_repeats", "_schedule", b"_schedule", "_ttl", b"_ttl", "data", b"data", "due_time", b"due_time", "failure_policy", b"failure_policy", "repeats", b"repeats", "schedule", b"schedule", "ttl", b"ttl"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_data", b"_data", "_due_time", b"_due_time", "_failure_policy", b"_failure_policy", "_override_route_path", b"_override_route_path", "_repeats", b"_repeats", "_schedule", b"_schedule", "_ttl", b"_ttl", "data", b"data", "due_time", b"due_time", "failure_policy", b"failure_policy", "override_route_path", b"override_route_path", "repeats", b"repeats", "schedule", b"schedule", "ttl", b"ttl"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["_data", b"_data", "_due_time", b"_due_time", "_failure_policy", b"_failure_policy", "_repeats", b"_repeats", "_schedule", b"_schedule", "_ttl", b"_ttl", "data", b"data", "due_time", b"due_time", "failure_policy", b"failure_policy", "name", b"name", "repeats", b"repeats", "schedule", b"schedule", "ttl", b"ttl"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_data", b"_data", "_due_time", b"_due_time", "_failure_policy", b"_failure_policy", "_override_route_path", b"_override_route_path", "_repeats", b"_repeats", "_schedule", b"_schedule", "_ttl", b"_ttl", "data", b"data", "due_time", b"due_time", "failure_policy", b"failure_policy", "name", b"name", "override_route_path", b"override_route_path", "repeats", b"repeats", "schedule", b"schedule", "ttl", b"ttl"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     _WhichOneofReturnType__data: _TypeAlias = _typing.Literal["data"]  # noqa: Y015
     _WhichOneofArgType__data: _TypeAlias = _typing.Literal["_data", b"_data"]  # noqa: Y015
     _WhichOneofReturnType__due_time: _TypeAlias = _typing.Literal["due_time"]  # noqa: Y015
     _WhichOneofArgType__due_time: _TypeAlias = _typing.Literal["_due_time", b"_due_time"]  # noqa: Y015
     _WhichOneofReturnType__failure_policy: _TypeAlias = _typing.Literal["failure_policy"]  # noqa: Y015
+    _WhichOneofReturnType__override_route_path: _TypeAlias = _typing.Literal["override_route_path"]  # noqa: Y015
+    _WhichOneofArgType__override_route_path: _TypeAlias = _typing.Literal["_override_route_path", b"_override_route_path"]  # noqa: Y015
     _WhichOneofArgType__failure_policy: _TypeAlias = _typing.Literal["_failure_policy", b"_failure_policy"]  # noqa: Y015
     _WhichOneofReturnType__repeats: _TypeAlias = _typing.Literal["repeats"]  # noqa: Y015
     _WhichOneofArgType__repeats: _TypeAlias = _typing.Literal["_repeats", b"_repeats"]  # noqa: Y015
@@ -128,6 +135,8 @@ class Job(_message.Message):
     def WhichOneof(self, oneof_group: _WhichOneofArgType__due_time) -> _WhichOneofReturnType__due_time | None: ...
     @_typing.overload
     def WhichOneof(self, oneof_group: _WhichOneofArgType__failure_policy) -> _WhichOneofReturnType__failure_policy | None: ...
+    @_typing.overload
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__override_route_path) -> _WhichOneofReturnType__override_route_path | None: ...
     @_typing.overload
     def WhichOneof(self, oneof_group: _WhichOneofArgType__repeats) -> _WhichOneofReturnType__repeats | None: ...
     @_typing.overload
