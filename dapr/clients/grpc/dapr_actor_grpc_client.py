@@ -133,19 +133,21 @@ class DaprActorGrpcClient(DaprActorClientBase):
         await self._stub.ExecuteActorStateTransaction(request, timeout=self._timeout)
 
     async def get_state(self, actor_type: str, actor_id: str, name: str) -> bytes:
-        """Gets a state value through the GetActorState RPC.
+        data, _ = await self.get_state_with_etag(actor_type, actor_id, name)
+        return data
 
-        Returns empty bytes when the key does not exist, matching the HTTP
-        client's empty-body behavior.
-        """
+    async def get_state_with_etag(
+        self, actor_type: str, actor_id: str, name: str
+    ) -> tuple[bytes, Optional[str]]:
+        """Gets a state value and ETag through the GetActorState RPC."""
         request = api_v1.GetActorStateRequest(actor_type=actor_type, actor_id=actor_id, key=name)
         try:
             response = await self._stub.GetActorState(request, timeout=self._timeout)
         except AioRpcError as error:
             if error.code() == StatusCode.NOT_FOUND:
-                return b''
+                return b'', None
             raise
-        return response.data
+        return response.data, response.etag or None
 
     async def register_reminder(
         self, actor_type: str, actor_id: str, name: str, data: bytes
