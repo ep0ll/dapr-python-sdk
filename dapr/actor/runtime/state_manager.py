@@ -38,6 +38,7 @@ class StateMetadata(Generic[T]):
         self._value = value
         self._change_kind = change_kind
         self._ttl_in_seconds = ttl_in_seconds
+        self.etag: Optional[str] = None
 
     @property
     def value(self) -> T:
@@ -128,11 +129,12 @@ class ActorStateManager(Generic[T]):
             if _is_absent(state_metadata):
                 return False, None
             return True, state_metadata.value
-        has_value, val = await self._actor.runtime_ctx.state_provider.try_load_state(
+        has_value, val, etag = await self._actor.runtime_ctx.state_provider.try_load_state_with_etag(
             self._type_name, self._actor.id.id, state_name
         )
         if has_value:
             state_change_tracker[state_name] = StateMetadata(val, StateChangeKind.none)
+            state_change_tracker[state_name].etag = etag
         elif state_change_tracker is self._default_state_change_tracker:
             # Only the default tracker is refreshed by reentrant saves, so a miss cached
             # in a reentrant tracker could hide a nested call's write and overwrite it.
@@ -165,11 +167,14 @@ class ActorStateManager(Generic[T]):
             state_change_tracker[state_name] = state_metadata
             return
 
-        # Add and update are both saved as an upsert, so skip the store read. Update also
-        # makes a later remove send a delete, since the key may already be in the store.
-        state_change_tracker[state_name] = StateMetadata(
-            value, StateChangeKind.update, ttl_in_seconds
+        has_value, _, etag = await self._actor.runtime_ctx.state_provider.try_load_state_with_etag(
+            self._type_name, self._actor.id.id, state_name
         )
+        metadata = StateMetadata(
+            value, StateChangeKind.update if has_value else StateChangeKind.add, ttl_in_seconds
+        )
+        metadata.etag = etag
+        state_change_tracker[state_name] = metadata
 
     async def remove_state(self, state_name: str) -> None:
         if not await self.try_remove_state(state_name):
@@ -238,13 +243,15 @@ class ActorStateManager(Generic[T]):
             state_change_tracker[state_name] = state_metadata
             return new_value
 
-        has_value, val = await self._actor.runtime_ctx.state_provider.try_load_state(
+        has_value, val, etag = await self._actor.runtime_ctx.state_provider.try_load_state_with_etag(
             self._type_name, self._actor.id.id, state_name
         )
 
         if has_value:
             new_value = update_value_factory(state_name, val)
-            state_change_tracker[state_name] = StateMetadata(new_value, StateChangeKind.update)
+            metadata = StateMetadata(new_value, StateChangeKind.update)
+            metadata.etag = etag
+            state_change_tracker[state_name] = metadata
             return new_value
         state_change_tracker[state_name] = StateMetadata(value, StateChangeKind.add)
         return value
@@ -278,7 +285,7 @@ class ActorStateManager(Generic[T]):
             return
 
         state_changes = []
-        states_to_remove = []
+        states_to_evict = []
         for state_name, state_metadata in state_change_tracker.items():
             if state_metadata.change_kind == StateChangeKind.none:
                 continue
@@ -288,56 +295,27 @@ class ActorStateManager(Generic[T]):
                     state_metadata.value,
                     state_metadata.change_kind,
                     state_metadata.ttl_in_seconds,
+                    state_metadata.etag,
                 )
             )
-            if state_metadata.change_kind == StateChangeKind.remove:
-                states_to_remove.append(state_name)
-            # Mark the states as unmodified so that tracking for next invocation is done correctly.
-            state_metadata.change_kind = StateChangeKind.none
+            states_to_evict.append(state_name)
         if len(state_changes) > 0:
             await self._actor.runtime_ctx.state_provider.save_state(
                 self._type_name, self._actor.id.id, state_changes
             )
-        for state_name in states_to_remove:
+        for state_name in states_to_evict:
             state_change_tracker.pop(state_name, None)
         if state_change_tracker is not self._default_state_change_tracker:
             self._refresh_default_tracker(state_changes)
 
     def _refresh_default_tracker(self, state_changes: List[ActorStateChange]) -> None:
-        # Writes made through a reentrancy-scoped tracker are invisible to the default
-        # tracker, which activation, reminders and timers read from. Refresh its clean
-        # copies of the written keys in place, cached misses included, in the shape a fresh
-        # read would return, and drop removed keys. Entries with pending changes are left alone.
-        state_provider = self._actor.runtime_ctx.state_provider
+        # A successful write changes the store ETag. Evict clean copies so the next
+        # read obtains the new value and its matching ETag. Pending default changes
+        # are intentionally left untouched.
         for change in state_changes:
             metadata = self._default_state_change_tracker.get(change.state_name)
-            if metadata is None or metadata.change_kind != StateChangeKind.none:
-                continue
-            # A None value is not written to the store, and a TTL'd key can expire there
-            # while a cached copy would not, so let the next read reload both.
-            is_evicted = (
-                change.change_kind == StateChangeKind.remove
-                or change.value is None
-                or change.ttl_in_seconds is not None
-            )
-            if is_evicted:
-                self._default_state_change_tracker.pop(change.state_name)
-                continue
-            try:
-                value = state_provider.round_trip_state_value(change.value)
-            except Exception:
-                # The save has already committed; fall back to reloading on the next read.
-                logger.warning(
-                    'Could not round-trip actor state %r through the state serializer; '
-                    'evicting it from the default state tracker',
-                    change.state_name,
-                    exc_info=True,
-                )
-                self._default_state_change_tracker.pop(change.state_name)
-                continue
-            self._default_state_change_tracker[change.state_name] = StateMetadata(
-                value, StateChangeKind.none
-            )
+            if metadata is not None and metadata.change_kind == StateChangeKind.none:
+                self._default_state_change_tracker.pop(change.state_name, None)
 
     def is_state_marked_for_remove(self, state_name: str) -> bool:
         state_change_tracker = self._get_contextual_state_tracker()
