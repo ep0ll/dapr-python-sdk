@@ -102,7 +102,9 @@ class ActorStateManager(Generic[T]):
                 state_change_tracker[state_name] = StateMetadata(value, StateChangeKind.add)
                 return True
             if state_metadata.change_kind == StateChangeKind.remove:
-                state_change_tracker[state_name] = StateMetadata(value, StateChangeKind.update)
+                metadata = StateMetadata(value, StateChangeKind.update)
+                metadata.etag = state_metadata.etag
+                state_change_tracker[state_name] = metadata
                 return True
             return False
 
@@ -236,7 +238,9 @@ class ActorStateManager(Generic[T]):
                 state_change_tracker[state_name] = StateMetadata(value, StateChangeKind.add)
                 return value
             if state_metadata.change_kind == StateChangeKind.remove:
-                state_change_tracker[state_name] = StateMetadata(value, StateChangeKind.update)
+                metadata = StateMetadata(value, StateChangeKind.update)
+                metadata.etag = state_metadata.etag
+                state_change_tracker[state_name] = metadata
                 return value
             new_value = update_value_factory(state_name, state_metadata.value)
             state_metadata.value = new_value
